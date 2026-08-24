@@ -1,0 +1,10 @@
+[user]
+	name = happa0827
+	email = happa.q6.6p@gmail.com
+	signingKey = ~/.ssh/id_ed25519.pub
+[init]
+	defaultBranch = main
+[commit]
+	gpgsign = false
+[gpg]
+   format = ssh
