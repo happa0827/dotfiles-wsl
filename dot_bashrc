@@ -126,3 +126,12 @@ eval "$(zoxide init bash --cmd cd)"
 # . "/home/happa0827/.deno/env"
 alias fd=fdfind
 eval "$(/home/happa0827/.local/bin/mise activate bash)"
+~/forward-obsidian-mcp.sh
+export NODE_EXTRA_CA_CERTS="/usr/local/share/ca-certificates/obsidian-mcp.crt"
+export PATH="$HOME/.bun/bin:$PATH"
+[credential "https://github.com"]
+-       helper =
+-       helper = !/usr/bin/gh auth git-credential
+-[credential "https://gist.github.com"]
+-       helper =
+-       helper = !/usr/bin/gh auth git-credential

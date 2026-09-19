@@ -8,3 +8,5 @@
 	gpgsign = false
 [gpg]
    format = ssh
+[ghq]
+       root = /home/happa0827/projects   

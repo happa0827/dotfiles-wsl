@@ -1,4 +1,35 @@
 autoload -U compinit
 compinit
 
-eval "$(mise activate zsh)"
+eval "$(~/.local/bin/mise activate zsh)"
+
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git zsh-syntax-highlighting zsh-autosuggestions you-should-use zsh-bat copyfile copypath aliases)
+bindkey '^F' autosuggest-accept
+export DISABLE_LS_COLORS="true"
+
+fd() {
+  local dir
+  local -a prune_names prune_args
+  prune_names=(node_modules dist build .next .nuxt out coverage target vendor)
+  prune_args=()
+  local n
+  for n in "${prune_names[@]}"; do
+    prune_args+=(-o -name "$n")
+  done
+
+  dir=$(find "${1:-.}" \
+          \( -path '*/.*' "${prune_args[@]}" \) -prune \
+          -o -type d -print 2>/dev/null | fzf +m) &&
+    cd "$dir"
+}
+
+alias ls='eza --icons -I "node_modules|.git" -T --level=1$args'
+alias clip='clip.exe'
+
+export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
+
+source $ZSH/oh-my-zsh.sh
+
+eval "$(zoxide init zsh --cmd cd)"
