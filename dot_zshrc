@@ -33,3 +33,11 @@ export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 source $ZSH/oh-my-zsh.sh
 
 eval "$(zoxide init zsh --cmd cd)"
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
+
+# Vite+ bin (https://viteplus.dev)
+. "/home/happa0827/.config/vite-plus/env"
+export SSH_AUTH_SOCK="/run/user/$(id -u)/openssh_agent"
+
+eval "$(direnv hook zsh)"

@@ -135,3 +135,6 @@ export PATH="$HOME/.bun/bin:$PATH"
 -[credential "https://gist.github.com"]
 -       helper =
 -       helper = !/usr/bin/gh auth git-credential
+
+# Vite+ bin (https://viteplus.dev)
+. "/home/happa0827/.config/vite-plus/env"

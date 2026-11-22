@@ -2,3 +2,6 @@ if [ -f ~/.bashrc ]; then
   . ~/.bashrc
 fi
 [ -f "$HOME/.deno/env" ] && . "$HOME/.deno/env"
+
+# Vite+ bin (https://viteplus.dev)
+. "/home/happa0827/.config/vite-plus/env"

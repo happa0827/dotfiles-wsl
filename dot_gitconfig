@@ -5,7 +5,7 @@
 [init]
 	defaultBranch = main
 [commit]
-	gpgsign = false
+	gpgsign = true
 [gpg]
    format = ssh
 [ghq]

@@ -26,3 +26,6 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 [ -f "$HOME/.deno/env" ] && . "$HOME/.deno/env"
+
+# Vite+ bin (https://viteplus.dev)
+. "/home/happa0827/.config/vite-plus/env"
