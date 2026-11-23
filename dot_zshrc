@@ -41,3 +41,4 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
 export SSH_AUTH_SOCK="/run/user/$(id -u)/openssh_agent"
 
 eval "$(direnv hook zsh)"
+eval "$(devbox global shellenv)"
