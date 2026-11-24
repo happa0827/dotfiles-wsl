@@ -1,44 +1,171 @@
-autoload -U compinit
-compinit
-
-eval "$(~/.local/bin/mise activate zsh)"
-
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="robbyrussell"
-plugins=(git zsh-syntax-highlighting zsh-autosuggestions you-should-use zsh-bat copyfile copypath aliases)
-bindkey '^F' autosuggest-accept
-export DISABLE_LS_COLORS="true"
-
-fd() {
-  local dir
-  local -a prune_names prune_args
-  prune_names=(node_modules dist build .next .nuxt out coverage target vendor)
-  prune_args=()
-  local n
-  for n in "${prune_names[@]}"; do
-    prune_args+=(-o -name "$n")
-  done
-
-  dir=$(find "${1:-.}" \
-          \( -path '*/.*' "${prune_args[@]}" \) -prune \
-          -o -type d -print 2>/dev/null | fzf +m) &&
-    cd "$dir"
-}
-
-alias ls='eza --icons -I "node_modules|.git" -T --level=1$args'
-alias clip='clip.exe'
-
+# ==================================================
+# 1. PATH・環境変数(ほかのツールより先に読み込む)
+# ==================================================
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
 export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 
-source $ZSH/oh-my-zsh.sh
-
-eval "$(zoxide init zsh --cmd cd)"
-
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
-
 # Vite+ bin (https://viteplus.dev)
-. "/home/happa0827/.config/vite-plus/env"
+. "$HOME/.config/vite-plus/env"
+
+eval "$(devbox global shellenv)"
+
 export SSH_AUTH_SOCK="/run/user/$(id -u)/openssh_agent"
 
+# ==================================================
+# 2. oh-my-zsh(compinit は oh-my-zsh が実行するので自分では呼ばない)
+# ==================================================
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+DISABLE_LS_COLORS="true"
+# zsh-syntax-highlighting は最後に置くのが推奨
+plugins=(git zsh-autosuggestions you-should-use zsh-bat copyfile copypath aliases zsh-syntax-highlighting)
+
+source "$ZSH/oh-my-zsh.sh"
+
+# ==================================================
+# 3. エイリアス(oh-my-zsh の後に定義して上書きされないようにする)
+# ==================================================
+alias ls='eza --icons -I "node_modules|.git" -T --level=1'
+alias clip='clip.exe'
+
+# ==================================================
+# 4. 関数
+# ==================================================
+# 注意: fd コマンド(fd-find)を入れると名前がぶつかります
+fd() {
+  local dir
+  dir=$(find "${1:-.}" -path '*/\.*' -prune \
+                  -o -type d -print 2> /dev/null | fzf +m) &&
+  cd "$dir"
+}
+
+ghq-fzf() {
+  local root="$(ghq root)"
+  local src=$({ echo "root"; ghq list } | fzf --preview "
+    if [ {} = root ]; then
+      eza --icons -T --level=1 -a $root
+    else
+      bat --color=always --style=header,grid --line-range :80 $root/{}/README.*
+    fi")
+  if [[ -n "$src" ]]; then
+    local dir
+    if [[ "$src" == "root" ]]; then
+      dir="$root"
+    else
+      dir="$root/$src"
+    fi
+    BUFFER="cd ${(q)dir}"
+    zle accept-line
+  fi
+  zle reset-prompt
+}
+
+fdgit() {
+  local top_dir
+  top_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -z "$top_dir" ]; then
+    echo "Not in a Git repository."
+    return 1
+  fi
+
+  local dir
+  dir="$(
+    cd "$top_dir" || return 1
+    find . -type d -not -path '*/.git/*' 2>/dev/null | fzf
+  )"
+
+  [ -z "$dir" ] && return
+  cd "$top_dir/$dir"
+}
+
+fbr() {
+  local branches branch
+  branches=$(git --no-pager branch -vv) &&
+  branch=$(echo "$branches" | fzf +m) &&
+  git checkout "$(echo "$branch" | sed 's/^[*+ ] *//' | awk '{print $1}')"
+}
+
+fbrr() {
+  local branches branch
+  branches=$(git branch --all | grep -v HEAD) &&
+  branch=$(echo "$branches" |
+           fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+  git checkout "$(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")"
+}
+
+repocr() {
+  local usage="Usage: repocr <name|owner/name> [public|private|internal] [gh repo create のオプション...]"
+  local name="$1"
+  local visibility="${2:-public}"
+
+  if [ -z "$name" ]; then
+    echo "$usage" >&2
+    return 1
+  fi
+
+  case "$visibility" in
+    public|private|internal) ;;
+    *)
+      echo "Error: 公開範囲は public / private / internal のいずれかです: '$visibility'" >&2
+      echo "$usage" >&2
+      return 1
+      ;;
+  esac
+
+  local cmd
+  for cmd in gh ghq; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+      echo "Error: $cmd が見つかりません" >&2
+      return 1
+    }
+  done
+
+  # owner を補って owner/name の形にそろえる
+  local full_name owner
+  if [[ "$name" == */* ]]; then
+    full_name="$name"
+  else
+    owner="$(gh api user --jq .login)" || {
+      echo "Error: gh のログインユーザーを取得できませんでした(gh auth status を確認してください)" >&2
+      return 1
+    }
+    full_name="$owner/$name"
+  fi
+
+  # 3つ目以降の引数はそのまま gh repo create に渡す
+  gh repo create "$full_name" --"$visibility" "${@:3}" || {
+    echo "Error: リポジトリ '$full_name' を作成できませんでした" >&2
+    return 1
+  }
+
+  ghq get "$full_name" || {
+    echo "Error: ghq get '$full_name' に失敗しました(GitHub 上のリポジトリは作成済みです)" >&2
+    return 1
+  }
+
+  local repo_path
+  repo_path="$(ghq list -p -e "github.com/$full_name" | head -n 1)"
+  if [ -z "$repo_path" ] || [ ! -d "$repo_path" ]; then
+    echo "Error: '$full_name' のローカルパスが見つかりませんでした" >&2
+    return 1
+  fi
+
+  cd "$repo_path" || {
+    echo "Error: '$repo_path' に移動できませんでした" >&2
+    return 1
+  }
+}
+
+# ==================================================
+# 5. キーバインド(プラグインのウィジェットが定義された後に)
+# ==================================================
+zle -N ghq-fzf
+bindkey '^g' ghq-fzf
+bindkey '^F' autosuggest-accept
+
+# ==================================================
+# 6. ツールのフック(zoxide は最後が推奨)
+# ==================================================
+source <(fzf --zsh)
 eval "$(direnv hook zsh)"
-eval "$(devbox global shellenv)"
+eval "$(zoxide init zsh --cmd cd)"
