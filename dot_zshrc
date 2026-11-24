@@ -31,8 +31,7 @@ alias clip='clip.exe'
 # ==================================================
 # 4. 関数
 # ==================================================
-# 注意: fd コマンド(fd-find)を入れると名前がぶつかります
-fd() {
+fcd() {
   local dir
   dir=$(find "${1:-.}" -path '*/\.*' -prune \
                   -o -type d -print 2> /dev/null | fzf +m) &&
@@ -169,3 +168,4 @@ bindkey '^F' autosuggest-accept
 source <(fzf --zsh)
 eval "$(direnv hook zsh)"
 eval "$(zoxide init zsh --cmd cd)"
+
